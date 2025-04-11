@@ -1,0 +1,33 @@
+# get all player Ids from the NHL API from 2021-22 to 2024-25 for NHL EDGE Data
+get_skater_Ids <- function(seasonIds) {
+
+  skater_id_list <- list()
+  
+  for (seasonId in seasonIds) {
+    
+    json <-
+      glue("https://api.nhle.com/stats/rest/en/skater/bios?limit=-1&start=0&sort=points&cayenneExp=seasonId={seasonId}") |>
+      httr::GET() |>
+      httr::content(type = "text", encoding = "UTF-8") |>
+      jsonlite::fromJSON()
+    
+    skater_bios <- json |>
+      purrr::pluck("data") |>
+      tibble::as_tibble() |>
+      dplyr::select(
+        name = skaterFullName,
+        position = positionCode,
+        playerId
+      ) |>
+      dplyr::mutate(season = seasonId) |>
+      dplyr::distinct()
+    
+    skater_id_list[[as.character(seasonId)]] <- skater_bios
+  }
+  
+  combined_skater_id_list <- bind_rows(skater_id_list)
+  
+  return(combined_skater_id_list)
+}
+
+skater_bios <- get_skater_Ids(c(20242025, 20232024, 20222023, 20212022))
